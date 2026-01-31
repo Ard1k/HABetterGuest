@@ -11,6 +11,7 @@
 
   let hass = null;
   let initialized = false;
+  let styleInjected = false;
 
   /**
    * Get the hass object from the DOM
@@ -44,29 +45,71 @@
   }
 
   /**
+   * Generate CSS to hide sidebar items
+   */
+  function generateHideCSS() {
+    const selectors = HIDDEN_PANELS.map(panel => {
+      return `a[href="/${panel}"], a[data-panel="${panel}"], paper-icon-item[data-panel="${panel}"]`;
+    }).join(',\n');
+
+    return `${selectors} { display: none !important; }`;
+  }
+
+  /**
+   * Inject CSS into shadow root
+   */
+  function injectStyleIntoShadowRoot(shadowRoot) {
+    if (!shadowRoot) return;
+
+    // Check if style already injected
+    if (shadowRoot.querySelector('#ha-better-guest-style')) return;
+
+    const style = document.createElement('style');
+    style.id = 'ha-better-guest-style';
+    style.textContent = generateHideCSS();
+    shadowRoot.appendChild(style);
+  }
+
+  /**
    * Hide sidebar items for non-admin users
    */
   function hideSidebarItems() {
     const sidebar = document.querySelector('ha-sidebar');
-    if (!sidebar || !sidebar.shadowRoot) {
-      return;
+    if (!sidebar) return;
+
+    // Method 1: Inject CSS into shadow root
+    if (sidebar.shadowRoot) {
+      injectStyleIntoShadowRoot(sidebar.shadowRoot);
     }
 
-    const paperListbox = sidebar.shadowRoot.querySelector('paper-listbox') ||
-                         sidebar.shadowRoot.querySelector('.menu');
-    if (!paperListbox) {
-      return;
-    }
+    // Method 2: Direct style manipulation as fallback
+    const roots = [sidebar, sidebar.shadowRoot].filter(Boolean);
 
-    const items = paperListbox.querySelectorAll('a');
-    items.forEach(item => {
-      const href = item.getAttribute('href');
-      if (href) {
-        const panelPath = href.replace(/^\//, '').split('/')[0];
-        if (shouldHidePanel(panelPath)) {
-          item.style.display = 'none';
+    roots.forEach(root => {
+      // Try various selectors used in different HA versions
+      const selectors = [
+        'a[href]',
+        'paper-icon-item[data-panel]',
+        '.menu a',
+        'paper-listbox a'
+      ];
+
+      selectors.forEach(selector => {
+        try {
+          const items = root.querySelectorAll(selector);
+          items.forEach(item => {
+            const href = item.getAttribute('href');
+            const dataPanel = item.getAttribute('data-panel');
+            const panelPath = dataPanel || (href ? href.replace(/^\//, '').split('/')[0] : null);
+
+            if (panelPath && shouldHidePanel(panelPath)) {
+              item.style.display = 'none';
+            }
+          });
+        } catch (e) {
+          // Selector not supported, continue
         }
-      }
+      });
     });
   }
 
@@ -150,8 +193,10 @@
    */
   function waitForSidebar() {
     const sidebar = document.querySelector('ha-sidebar');
-    if (sidebar) {
+    if (sidebar && sidebar.shadowRoot) {
       observeSidebar();
+      // Periodic re-check to handle dynamic updates
+      setInterval(hideSidebarItems, 1000);
     } else {
       // Wait and retry
       setTimeout(waitForSidebar, 100);
