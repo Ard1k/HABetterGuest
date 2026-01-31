@@ -6,12 +6,11 @@
 (function() {
   'use strict';
 
-  const HIDDEN_PANELS = ['lovelace', 'energy', 'map', 'logbook', 'history', 'developer-tools', 'config'];
+  const HIDDEN_PANELS = ['lovelace', 'energy', 'map', 'logbook', 'history', 'developer-tools', 'config', 'media-browser', 'todo'];
   const REDIRECT_TO = '/profile';
 
   let hass = null;
   let initialized = false;
-  let styleInjected = false;
 
   /**
    * Get the hass object from the DOM
@@ -71,45 +70,48 @@
   }
 
   /**
+   * Get sidebar element by traversing shadow DOM
+   */
+  function getSidebar() {
+    try {
+      const ha = document.querySelector('home-assistant');
+      if (!ha || !ha.shadowRoot) return null;
+
+      const main = ha.shadowRoot.querySelector('home-assistant-main');
+      if (!main || !main.shadowRoot) return null;
+
+      // Try different possible locations
+      const sidebar = main.shadowRoot.querySelector('ha-sidebar') ||
+                      main.shadowRoot.querySelector('ha-drawer')?.querySelector('ha-sidebar');
+
+      return sidebar;
+    } catch (e) {
+      console.error('HA Better Guest: Error finding sidebar', e);
+      return null;
+    }
+  }
+
+  /**
    * Hide sidebar items for non-admin users
    */
   function hideSidebarItems() {
-    const sidebar = document.querySelector('ha-sidebar');
-    if (!sidebar) return;
+    const sidebar = getSidebar();
+    if (!sidebar || !sidebar.shadowRoot) return;
 
-    // Method 1: Inject CSS into shadow root
-    if (sidebar.shadowRoot) {
-      injectStyleIntoShadowRoot(sidebar.shadowRoot);
-    }
+    // Find all ha-md-list-item elements in the shadow root
+    const items = sidebar.shadowRoot.querySelectorAll('ha-md-list-item');
 
-    // Method 2: Direct style manipulation as fallback
-    const roots = [sidebar, sidebar.shadowRoot].filter(Boolean);
+    items.forEach(item => {
+      // Use .href property (not attribute)
+      const href = item.href;
+      if (href) {
+        // Extract panel name from href (e.g., "/energy" -> "energy")
+        const panelPath = href.replace(/^\//, '').split('/')[0];
 
-    roots.forEach(root => {
-      // Try various selectors used in different HA versions
-      const selectors = [
-        'a[href]',
-        'paper-icon-item[data-panel]',
-        '.menu a',
-        'paper-listbox a'
-      ];
-
-      selectors.forEach(selector => {
-        try {
-          const items = root.querySelectorAll(selector);
-          items.forEach(item => {
-            const href = item.getAttribute('href');
-            const dataPanel = item.getAttribute('data-panel');
-            const panelPath = dataPanel || (href ? href.replace(/^\//, '').split('/')[0] : null);
-
-            if (panelPath && shouldHidePanel(panelPath)) {
-              item.style.display = 'none';
-            }
-          });
-        } catch (e) {
-          // Selector not supported, continue
+        if (shouldHidePanel(panelPath)) {
+          item.style.display = 'none';
         }
-      });
+      }
     });
   }
 
@@ -127,7 +129,7 @@
    * Set up MutationObserver on sidebar
    */
   function observeSidebar() {
-    const sidebar = document.querySelector('ha-sidebar');
+    const sidebar = getSidebar();
     if (!sidebar) {
       return;
     }
@@ -192,8 +194,9 @@
    * Wait for sidebar to be available and set up observer
    */
   function waitForSidebar() {
-    const sidebar = document.querySelector('ha-sidebar');
+    const sidebar = getSidebar();
     if (sidebar && sidebar.shadowRoot) {
+      console.log('HA Better Guest: Sidebar found, setting up observer');
       observeSidebar();
       // Periodic re-check to handle dynamic updates
       setInterval(hideSidebarItems, 1000);
