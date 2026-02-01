@@ -22,18 +22,19 @@ Without configuration, the plugin uses default settings that hide most system pa
 
 ### Custom Configuration
 
-Create your own configuration file at `/config/www/ha-better-guest-config.js`. This location:
-- Maps to URL `/local/ha-better-guest-config.js`
+Create your own configuration file at `/www/config/ha-better-guest-config.js`. This location:
+- Maps to URL `/local/config/ha-better-guest-config.js`
 - Is **NOT managed by HACS** - your config survives plugin updates
 - Takes priority over the default configuration
 
 **Steps:**
 
-1. Create the file `/config/www/ha-better-guest-config.js`
-2. Add your configuration (see example below)
-3. Refresh your browser
+1. Create folder `/www/config/` if it doesn't exist
+2. Create the file `/www/config/ha-better-guest-config.js`
+3. Add your configuration (see example below)
+4. Refresh your browser
 
-**Important:** Do NOT edit the config file inside the HACS folder (`/config/www/community/HABetterGuest/`) - it will be overwritten on updates!
+**Important:** Do NOT edit the config file inside the HACS folder (`/www/community/HABetterGuest/`) - it will be overwritten on updates!
 
 ### Configuration Example
 
@@ -103,7 +104,7 @@ Custom dashboards use their URL path, e.g., `dashboard-public` for `/dashboard-p
 ## Troubleshooting
 
 Open browser console (F12) to see debug messages:
-- `HA Better Guest: Using user configuration from /local/` - user config loaded
+- `HA Better Guest: Using user configuration from /local/config/` - user config loaded
 - `HA Better Guest: Using default configuration` - no user config, using defaults
 - `HA Better Guest: Using config for user 'username'` - per-user config active
 - `HA Better Guest: Hidden panels: [...]` - list of hidden panels

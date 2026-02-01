@@ -32,16 +32,20 @@
       return;
     }
 
-    // Try to load from /local/ (user config - survives HACS updates)
+    // Try to load from /local/config/ (user config - survives HACS updates)
+    const configUrl = '/local/config/ha-better-guest-config.js';
     try {
-      await import('/local/ha-better-guest-config.js');
-      if (window.haBetterGuestConfig) {
-        config = window.haBetterGuestConfig;
-        console.log('HA Better Guest: Using user configuration from /local/');
-        return;
+      const response = await fetch(configUrl, { method: 'HEAD' });
+      if (response.ok) {
+        await import(configUrl);
+        if (window.haBetterGuestConfig) {
+          config = window.haBetterGuestConfig;
+          console.log('HA Better Guest: Using user configuration from /local/config/');
+          return;
+        }
       }
     } catch (e) {
-      // User config doesn't exist
+      // User config doesn't exist or failed to load
     }
 
     // Fallback to hardcoded defaults
