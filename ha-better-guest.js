@@ -6,11 +6,49 @@
 (function() {
   'use strict';
 
-  const HIDDEN_PANELS = ['lovelace', 'energy', 'map', 'logbook', 'history', 'developer-tools', 'config', 'media-browser', 'todo'];
-  const REDIRECT_TO = '/profile';
+  // Default configuration (used if no config file is present)
+  const DEFAULT_CONFIG = {
+    default: {
+      hiddenPanels: ['lovelace', 'energy', 'map', 'logbook', 'history', 'developer-tools', 'config', 'media-browser', 'todo'],
+      redirectTo: '/profile'
+    },
+    users: {}
+  };
 
+  let config = null;
+  let userConfig = null;
   let hass = null;
   let initialized = false;
+
+  /**
+   * Load configuration
+   */
+  function loadConfig() {
+    // Check if user has defined custom config
+    if (window.haBetterGuestConfig) {
+      config = window.haBetterGuestConfig;
+      console.log('HA Better Guest: Using custom configuration');
+    } else {
+      config = DEFAULT_CONFIG;
+      console.log('HA Better Guest: Using default configuration');
+    }
+  }
+
+  /**
+   * Get configuration for current user
+   */
+  function getUserConfig(username) {
+    if (!config) loadConfig();
+
+    // Check if there's a specific config for this user
+    if (config.users && config.users[username]) {
+      console.log(`HA Better Guest: Using config for user '${username}'`);
+      return config.users[username];
+    }
+
+    // Fall back to default config
+    return config.default;
+  }
 
   /**
    * Get the hass object from the DOM
@@ -27,11 +65,8 @@
    * Check if a panel path should be hidden
    */
   function shouldHidePanel(panelPath) {
-    // Exact match for built-in panels
-    if (HIDDEN_PANELS.includes(panelPath)) {
-      return true;
-    }
-    return false;
+    if (!userConfig) return false;
+    return userConfig.hiddenPanels.includes(panelPath);
   }
 
   /**
@@ -44,29 +79,10 @@
   }
 
   /**
-   * Generate CSS to hide sidebar items
+   * Get redirect target
    */
-  function generateHideCSS() {
-    const selectors = HIDDEN_PANELS.map(panel => {
-      return `a[href="/${panel}"], a[data-panel="${panel}"], paper-icon-item[data-panel="${panel}"]`;
-    }).join(',\n');
-
-    return `${selectors} { display: none !important; }`;
-  }
-
-  /**
-   * Inject CSS into shadow root
-   */
-  function injectStyleIntoShadowRoot(shadowRoot) {
-    if (!shadowRoot) return;
-
-    // Check if style already injected
-    if (shadowRoot.querySelector('#ha-better-guest-style')) return;
-
-    const style = document.createElement('style');
-    style.id = 'ha-better-guest-style';
-    style.textContent = generateHideCSS();
-    shadowRoot.appendChild(style);
+  function getRedirectTo() {
+    return userConfig ? userConfig.redirectTo : '/profile';
   }
 
   /**
@@ -120,7 +136,8 @@
    */
   function checkAndRedirect() {
     if (shouldRedirectPath(window.location.pathname)) {
-      window.history.replaceState(null, '', REDIRECT_TO);
+      const redirectTo = getRedirectTo();
+      window.history.replaceState(null, '', redirectTo);
       window.dispatchEvent(new PopStateEvent('popstate'));
     }
   }
@@ -228,7 +245,12 @@
       return;
     }
 
+    // Load configuration for this user
+    loadConfig();
+    userConfig = getUserConfig(hass.user.name);
     console.log('HA Better Guest: Non-admin user detected, applying restrictions');
+    console.log('HA Better Guest: Hidden panels:', userConfig.hiddenPanels);
+    console.log('HA Better Guest: Redirect to:', userConfig.redirectTo);
     initialized = true;
 
     // Set up sidebar hiding
