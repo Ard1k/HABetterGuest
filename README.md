@@ -14,7 +14,19 @@ HACS frontend plugin for Home Assistant that hides built-in panels for non-admin
 
 ### HACS
 
-Install using HACS - will start working after browser refresh
+1. Install using HACS
+2. Add to `configuration.yaml`:
+
+```yaml
+frontend:
+  extra_module_url:
+    - /hacsfiles/HABetterGuest/ha-better-guest.js
+```
+
+3. Restart Home Assistant
+4. Refresh browser
+
+**Why is this needed?** HACS registers plugins as Lovelace resources, which only load when visiting a Lovelace dashboard. The `extra_module_url` ensures the script loads on **all** pages immediately (including /logbook, /history, /config, etc.).
 
 ## Configuration (Optional)
 
