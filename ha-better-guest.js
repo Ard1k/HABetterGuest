@@ -213,8 +213,8 @@
     };
 
     history.replaceState = function(...args) {
-      // Avoid infinite loop - only intercept if not already redirecting to profile
-      if (args[2] !== REDIRECT_TO) {
+      // Avoid infinite loop - only intercept if not already redirecting
+      if (args[2] !== getRedirectTo()) {
         originalReplaceState.apply(this, args);
         setTimeout(checkAndRedirect, 0);
       } else {
