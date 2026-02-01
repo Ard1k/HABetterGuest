@@ -22,11 +22,18 @@ Without configuration, the plugin uses default settings that hide most system pa
 
 ### Custom Configuration
 
-To customize the behavior:
+Create your own configuration file at `/config/www/ha-better-guest-config.js`. This location:
+- Maps to URL `/local/ha-better-guest-config.js`
+- Is **NOT managed by HACS** - your config survives plugin updates
+- Takes priority over the default configuration
 
-1. Navigate to `/homeassistant/www/community/HABetterGuest/`
-2. Copy `ha-better-guest-config.template.js` to `ha-better-guest-config.js`
-3. Edit `ha-better-guest-config.js` to your needs
+**Steps:**
+
+1. Create the file `/config/www/ha-better-guest-config.js`
+2. Add your configuration (see example below)
+3. Refresh your browser
+
+**Important:** Do NOT edit the config file inside the HACS folder (`/config/www/community/HABetterGuest/`) - it will be overwritten on updates!
 
 ### Configuration Example
 
@@ -96,8 +103,8 @@ Custom dashboards use their URL path, e.g., `dashboard-public` for `/dashboard-p
 ## Troubleshooting
 
 Open browser console (F12) to see debug messages:
-- `HA Better Guest: Using custom configuration` - config file loaded
-- `HA Better Guest: Using default configuration` - no config file found
+- `HA Better Guest: Using user configuration from /local/` - user config loaded
+- `HA Better Guest: Using default configuration` - no user config, using defaults
 - `HA Better Guest: Using config for user 'username'` - per-user config active
 - `HA Better Guest: Hidden panels: [...]` - list of hidden panels
 - `HA Better Guest: Redirect to: ...` - redirect target

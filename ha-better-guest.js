@@ -21,7 +21,8 @@
   let initialized = false;
 
   /**
-   * Load configuration (async - tries to fetch config file from same directory)
+   * Load configuration
+   * Priority: 1. /local/ (user config) -> 2. hardcoded defaults
    */
   async function loadConfig() {
     // Check if user has already defined custom config via separate resource
@@ -31,26 +32,19 @@
       return;
     }
 
-    // Get config URL relative to this script
-    const scriptUrl = import.meta.url;
-    const configUrl = scriptUrl.replace('ha-better-guest.js', 'ha-better-guest-config.js');
-
+    // Try to load from /local/ (user config - survives HACS updates)
     try {
-      const response = await fetch(configUrl, { method: 'HEAD' });
-      if (response.ok) {
-        // Config file exists, load it
-        await import(configUrl);
-        if (window.haBetterGuestConfig) {
-          config = window.haBetterGuestConfig;
-          console.log('HA Better Guest: Using custom configuration');
-          return;
-        }
+      await import('/local/ha-better-guest-config.js');
+      if (window.haBetterGuestConfig) {
+        config = window.haBetterGuestConfig;
+        console.log('HA Better Guest: Using user configuration from /local/');
+        return;
       }
     } catch (e) {
-      // Config file doesn't exist or can't be loaded
+      // User config doesn't exist
     }
 
-    // No config found, use defaults
+    // Fallback to hardcoded defaults
     config = DEFAULT_CONFIG;
     console.log('HA Better Guest: Using default configuration');
   }
