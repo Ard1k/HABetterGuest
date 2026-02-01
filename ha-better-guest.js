@@ -21,17 +21,38 @@
   let initialized = false;
 
   /**
-   * Load configuration
+   * Load configuration (async - tries to fetch config file from same directory)
    */
-  function loadConfig() {
-    // Check if user has defined custom config
+  async function loadConfig() {
+    // Check if user has already defined custom config via separate resource
     if (window.haBetterGuestConfig) {
       config = window.haBetterGuestConfig;
-      console.log('HA Better Guest: Using custom configuration');
-    } else {
-      config = DEFAULT_CONFIG;
-      console.log('HA Better Guest: Using default configuration');
+      console.log('HA Better Guest: Using custom configuration (from window)');
+      return;
     }
+
+    // Get config URL relative to this script
+    const scriptUrl = import.meta.url;
+    const configUrl = scriptUrl.replace('ha-better-guest.js', 'ha-better-guest-config.js');
+
+    try {
+      const response = await fetch(configUrl, { method: 'HEAD' });
+      if (response.ok) {
+        // Config file exists, load it
+        await import(configUrl);
+        if (window.haBetterGuestConfig) {
+          config = window.haBetterGuestConfig;
+          console.log('HA Better Guest: Using custom configuration');
+          return;
+        }
+      }
+    } catch (e) {
+      // Config file doesn't exist or can't be loaded
+    }
+
+    // No config found, use defaults
+    config = DEFAULT_CONFIG;
+    console.log('HA Better Guest: Using default configuration');
   }
 
   /**
@@ -226,7 +247,7 @@
   /**
    * Initialize the plugin
    */
-  function init() {
+  async function init() {
     if (initialized) {
       return;
     }
@@ -246,7 +267,7 @@
     }
 
     // Load configuration for this user
-    loadConfig();
+    await loadConfig();
     userConfig = getUserConfig(hass.user.name);
     console.log('HA Better Guest: Non-admin user detected, applying restrictions');
     console.log('HA Better Guest: Hidden panels:', userConfig.hiddenPanels);
